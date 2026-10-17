@@ -1,1 +1,0 @@
-"""UI automation package."""
