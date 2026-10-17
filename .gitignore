@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.env
+
+# Reports / artifacts (generated at runtime)
+reports/
+allure-results/
+allure-results-*/
+allure-report/
+screenshots/
+newman/
+
+# Postman / Newman
+node_modules/
+newman/
+
+# IDE / OS
+.idea/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db

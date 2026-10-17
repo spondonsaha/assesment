@@ -1,0 +1,338 @@
+{
+  "info": {
+    "name": "ReqRes API - Automation Assessment",
+    "description": "Chained ReqRes API tests (Q3 login/authToken, Q4 GET user, Q5 PUT profile, Q6 PATCH field, Q8 bad requests). Executable with newman:\n\n  newman run api/postman/ReqRes_API.postman_collection.json -e api/postman/ReqRes.postman_environment.json\n\nEvery request asserts its HTTP status code.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Q3 - Login (capture authToken)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Q3: status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Q3: Content-Type is JSON', function () { pm.response.to.have.header('Content-Type'); });",
+              "pm.test('Q3: response contains a non-empty authToken', function () {",
+              "    var body = pm.response.json();",
+              "    pm.expect(body).to.have.property('token');",
+              "    pm.expect(body.token).to.be.a('string').and.to.have.length.above(0);",
+              "    pm.environment.set('authToken', body.token);",
+              "    pm.collectionVariables.set('authToken', body.token);",
+              "    console.log('Captured authToken: ' + body.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["login"]
+        },
+        "description": "Q3 - Login with registered credentials and capture authToken."
+      }
+    },
+    {
+      "name": "Q4 - Get user by userId",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Q4: status code is 200', function () { pm.response.to.have.status(200); });",
+              "var body = pm.response.json();",
+              "var data = body.data || {};",
+              "pm.test('Q4: returned id matches the requested userId', function () {",
+              "    pm.expect(String(data.id)).to.eql(String(pm.environment.get('userId')));",
+              "});",
+              "pm.test('Q4: first name matches', function () {",
+              "    pm.expect(data.first_name).to.eql(pm.environment.get('expectedFirstName'));",
+              "});",
+              "pm.test('Q4: last name matches', function () {",
+              "    pm.expect(data.last_name).to.eql(pm.environment.get('expectedLastName'));",
+              "});",
+              "pm.test('Q4: email matches', function () {",
+              "    pm.expect(data.email).to.eql(pm.environment.get('expectedEmail'));",
+              "});",
+              "pm.test('Q4: authToken captured in Q3 is available (chained)', function () {",
+              "    pm.expect(pm.environment.get('authToken')).to.be.a('string').and.to.have.length.above(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/users/{{userId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "{{userId}}"]
+        },
+        "description": "Q4 - GET a user by id and verify name and email."
+      }
+    },
+    {
+      "name": "Q5 - Put updated profile",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Q5: status code is 200', function () { pm.response.to.have.status(200); });",
+              "var body = pm.response.json();",
+              "pm.test('Q5: name is echoed back', function () {",
+              "    pm.expect(body.name).to.eql(pm.environment.get('updatedName'));",
+              "});",
+              "pm.test('Q5: job is echoed back', function () {",
+              "    pm.expect(body.job).to.eql(pm.environment.get('updatedJob'));",
+              "});",
+              "pm.test('Q5: updatedAt is present and is a valid timestamp', function () {",
+              "    pm.expect(body).to.have.property('updatedAt');",
+              "    pm.expect(isNaN(Date.parse(body.updatedAt))).to.be.false;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"{{updatedName}}\",\n  \"job\": \"{{updatedJob}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/{{userId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "{{userId}}"]
+        },
+        "description": "Q5 - PUT an updated profile and verify updatedAt."
+      }
+    },
+    {
+      "name": "Q6 - Patch single field",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Q6: status code is 200', function () { pm.response.to.have.status(200); });",
+              "var body = pm.response.json();",
+              "pm.test('Q6: only the job field was changed', function () {",
+              "    pm.expect(body.job).to.eql(pm.environment.get('patchedJob'));",
+              "});",
+              "pm.test('Q6: no other user fields were modified', function () {",
+              "    pm.expect(body).to.not.have.property('name');",
+              "    pm.expect(body).to.not.have.property('email');",
+              "});",
+              "pm.test('Q6: updatedAt is present and is a valid timestamp', function () {",
+              "    pm.expect(body).to.have.property('updatedAt');",
+              "    pm.expect(isNaN(Date.parse(body.updatedAt))).to.be.false;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"job\": \"{{patchedJob}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/{{userId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "{{userId}}"]
+        },
+        "description": "Q6 - PATCH a single field and verify only it changed."
+      }
+    },
+    {
+      "name": "Q8 - Bad requests (assert 4xx)",
+      "item": [
+        {
+          "name": "Q8.1 - Login without password -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Q8.1: status code is 400', function () { pm.response.to.have.status(400); });",
+                  "pm.test('Q8.1: status code is a 4xx client error', function () {",
+                  "    pm.expect(pm.response.code).to.be.within(400, 499);",
+                  "});",
+                  "pm.test('Q8.1: error is \"Missing password\"', function () {",
+                  "    pm.expect(pm.response.json().error).to.eql('Missing password');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["login"]
+            },
+            "description": "Q8.1 - Reuses the stored email but omits the password."
+          }
+        },
+        {
+          "name": "Q8.2 - Login with unknown user -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Q8.2: status code is 400', function () { pm.response.to.have.status(400); });",
+                  "pm.test('Q8.2: status code is a 4xx client error', function () {",
+                  "    pm.expect(pm.response.code).to.be.within(400, 499);",
+                  "});",
+                  "pm.test('Q8.2: error is \"user not found\"', function () {",
+                  "    pm.expect(pm.response.json().error).to.eql('user not found');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"not.a.user@reqres.invalid\",\n  \"password\": \"{{password}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["login"]
+            },
+            "description": "Q8.2 - Login with an unregistered email."
+          }
+        },
+        {
+          "name": "Q8.3 - Get non-existent user -> 404",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var base = Number(pm.environment.get('userId') || 2);",
+                  "pm.environment.set('invalidUserId', String(base + 999999));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Q8.3: status code is 404', function () { pm.response.to.have.status(404); });",
+                  "pm.test('Q8.3: status code is a 4xx client error', function () {",
+                  "    pm.expect(pm.response.code).to.be.within(400, 499);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{invalidUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{invalidUserId}}"]
+            },
+            "description": "Q8.3 - GET a non-existent user derived from the stored userId."
+          }
+        },
+        {
+          "name": "Q8.4 - Register without password -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Q8.4: status code is 400', function () { pm.response.to.have.status(400); });",
+                  "pm.test('Q8.4: status code is a 4xx client error', function () {",
+                  "    pm.expect(pm.response.code).to.be.within(400, 499);",
+                  "});",
+                  "pm.test('Q8.4: error is \"Missing password\"', function () {",
+                  "    pm.expect(pm.response.json().error).to.eql('Missing password');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["register"]
+            },
+            "description": "Q8.4 - Register with the stored email but no password."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "authToken", "value": "" }
+  ]
+}

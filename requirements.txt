@@ -1,0 +1,5 @@
+selenium==4.49.0
+pytest==9.1.1
+pytest-html==4.2.0
+allure-pytest==2.16.2
+requests==2.32.3
