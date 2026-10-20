@@ -1,14 +1,3 @@
-"""SauceDemo UI automation.
-
-Run it with:
-
-    python saucedemo_ui.py
-
-A Chrome window opens and you can watch all three scenarios run one after
-another. At the end it prints a small PASS/FAIL summary.
-
-Set the environment variable SELENIUM_HEADLESS=1 to run without a window.
-"""
 
 import os
 import re
@@ -22,13 +11,10 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 
 URL = "https://www.saucedemo.com/"
 PASSWORD = "secret_sauce"
-WAIT = 60        # seconds to wait for elements (generous: one user is slow)
-PAUSE = 0.8      # seconds to pause between steps so you can watch
+WAIT = 60        
+PAUSE = 0.8     
 
 
-# ---------------------------------------------------------------------------
-# small helpers
-# ---------------------------------------------------------------------------
 def new_driver():
     options = webdriver.ChromeOptions()
     options.add_argument("--window-size=1440,900")
@@ -57,8 +43,6 @@ def retry(action, attempts=4):
 
 
 def click(driver, locator):
-    # SauceDemo is a React SPA; a scripted click reliably triggers the
-    # navigation handlers where a normal click is sometimes silently dropped.
     def do():
         element = wait_for(driver).until(EC.element_to_be_clickable(locator))
         driver.execute_script("arguments[0].click();", element)
@@ -71,8 +55,6 @@ def wait_invisible(driver, locator, timeout=WAIT):
 
 
 def fill(driver, field_id, value):
-    # Type into a React input, retrying and finally falling back to a scripted
-    # value because the controlled inputs occasionally swallow keystrokes.
     for _ in range(3):
         field = wait_for(driver).until(EC.element_to_be_clickable((By.ID, field_id)))
         field.click()
@@ -96,9 +78,6 @@ def to_number(text):
     return float(re.search(r"[\d.]+", text).group())
 
 
-# ---------------------------------------------------------------------------
-# page actions
-# ---------------------------------------------------------------------------
 def login(driver, username):
     driver.get(URL)
     wait_for(driver).until(EC.visibility_of_element_located((By.ID, "login-button")))
@@ -128,8 +107,6 @@ def open_menu(driver):
 
 def close_menu(driver):
     if menu_is_open(driver):
-        # The side-menu's close (X) button is unreliable, so toggle the burger
-        # button instead to slide the menu shut.
         driver.execute_script("document.getElementById('react-burger-menu-btn').click();")
         wait_for(driver).until(lambda d: not menu_is_open(d))
 
@@ -200,9 +177,6 @@ def back_home(driver):
     wait_for(driver).until(EC.url_contains("inventory.html"))
 
 
-# ---------------------------------------------------------------------------
-# the three scenarios
-# ---------------------------------------------------------------------------
 def q1_locked_out_user(driver):
     print("  -> logging in as locked_out_user")
     login(driver, "locked_out_user")
@@ -285,9 +259,6 @@ def q3_performance_glitch_user(driver):
     pause(1)
 
 
-# ---------------------------------------------------------------------------
-# runner
-# ---------------------------------------------------------------------------
 def main():
     print("Starting SauceDemo UI tests. A Chrome window will open...\n")
     driver = new_driver()
