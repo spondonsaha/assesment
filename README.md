@@ -1,49 +1,50 @@
-# Automation Testing Assessment
+# Automation Assessment
 
-Simple automation: a Selenium script that opens a visible Chrome window and runs the SauceDemo scenarios, and a Postman collection to run the ReqRes API checks.
+This is my solution to the automation assessment. I split it into two parts:
 
-## Setup
+- `saucedemo_ui.py` for the UI questions (SauceDemo)
+- `postman/` for the API questions (ReqRes)
 
-For UI tests only:
+## UI questions
+
+I used Python and Selenium for these. The script opens Chrome and runs the three scenarios one after another.
+
+**Q1. Locked out user**
+I log in as `locked_out_user` and check that the error message is shown. The message I expect is `Epic sadface: Sorry, this user has been locked out.`
+
+**Q2. Standard user purchase**
+I log in as `standard_user` and reset the app state first. Then I add three products to the cart (Backpack, Bike Light, Bolt T-Shirt) and go through checkout. On the overview page I check the product names and the total price. After that I finish the order and check the success message, then reset the app state and log out.
+
+**Q3. Performance glitch user**
+This user is slow, so I gave the waits a bit more room. I log in, reset the app state, and sort the products by Name (Z to A). I take the first product after sorting and buy only that one. On the overview page I check the name and the total, finish the order, check the success message, then reset and log out.
+
+To run the UI script:
+
 ```powershell
 pip install selenium
-```
-
-Chrome is required for the UI script (Selenium Manager downloads the driver on its own).
-
-## UI tests (SauceDemo)
-
-**Visible Chrome window (default):**
-```powershell
 python saucedemo_ui.py
 ```
 
-**Headless (no window):**
+It opens a visible Chrome window. If you want it to run without the window, set `SELENIUM_HEADLESS=1` before running:
+
 ```powershell
 $env:SELENIUM_HEADLESS="1"; python saucedemo_ui.py
 ```
 
-Runs:
-* **Q1** – `locked_out_user` shows the lock-out error
-* **Q2** – `standard_user`: reset app state → add 3 items → checkout → verify products & total → finish → success message → reset → logout
-* **Q3** – `performance_glitch_user`: reset → sort Name (Z to A) → add first product → checkout → verify names & total → finish → success message → reset → logout
+## API questions
 
-At the end it prints a PASS/FAIL summary. Press Enter to close the browser.
+For the API part I made a Postman collection with an environment file. Every request has tests that check the status code and the response body. The collection saves the token from the login request so the later requests can use it.
 
-## API tests (ReqRes – Postman)
+- **Q3** - I log in with the given email and password, then save the `token` from the response.
+- **Q4** - I get a user by id and check the name and email.
+- **Q5** - I send a PUT request with an updated name and job, then check the response and that `updatedAt` is there.
+- **Q6** - I send a PATCH request that only changes the job, and check that nothing else changed.
+- **Q8** - I send a few bad requests (missing password, unknown user, unknown id, register without password) and check they return a 4xx with the right error message.
 
-The API automation is the Postman collection in `postman/` with built-in tests (status codes, assertions, and chained values).
-
-**Run in Postman:** Import `postman/ReqRes_API.postman_collection.json` and `postman/ReqRes.postman_environment.json`, then run the collection.
-
-**Run via Newman (CLI):**
+You can run it in Postman by importing `postman/ReqRes_API.postman_collection.json` and `postman/ReqRes.postman_environment.json`, then running the collection. Or from the terminal with Newman:
 
 ```powershell
 newman run postman/ReqRes_API.postman_collection.json -e postman/ReqRes.postman_environment.json
 ```
 
-> ReqRes allows 40 requests/day for anonymous use. If you hit the limit, wait and run again.
-
-## Notes
-- No manual WebDriver download needed (Selenium Manager handles it).
-- All requests validate HTTP status codes. The collection covers login/authToken (Q3), get user + name/email (Q4), PUT with `updatedAt` (Q5), PATCH single field (Q6), and bad requests returning 4xx (Q8).
+One thing to keep in mind: ReqRes only allows 40 requests per day for anonymous use. If it starts returning 429, it's just the daily limit, so wait a bit and run it again.
